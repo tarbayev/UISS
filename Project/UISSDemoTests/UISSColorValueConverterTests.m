@@ -2,11 +2,11 @@
 // Copyright (c) 2013 Robert Wijas. All rights reserved.
 //
 
-#import <SenTestingKit/SenTestingKit.h>
+#import <XCTest/XCTest.h>
 #import "UISSColorValueConverter.h"
 #import "UIColor+UISS.h"
 
-@interface UISSColorValueConverterTests : SenTestCase
+@interface UISSColorValueConverterTests : XCTestCase
 
 @property(nonatomic, strong) UISSColorValueConverter *converter;
 
@@ -16,10 +16,10 @@
 
 - (void)testNull {
     UIColor *color = [self.converter convertValue:[NSNull null]];
-    STAssertNil(color, nil);
+    XCTAssertNil(color);
 
     NSString *code = [self.converter generateCodeForValue:[NSNull null]];
-    STAssertEqualObjects(code, @"nil", nil);
+    XCTAssertEqualObjects(code, @"nil");
 }
 
 - (void)testExactColorSelector {
@@ -59,13 +59,13 @@
             expectedCode:@"[UIColor colorWithRed:1.000 green:0.000 blue:0.000 alpha:1.000]"];
 
     [self testColorValue:@[@1, @2, @3]
-           expectedColor:[UIColor colorWithRed:1/255.0f green:2/255.0f blue:3/255.0f alpha:1]
+           expectedColor:[UIColor colorWithRed:(CGFloat)1/255.0f green:(CGFloat)2/255.0f blue:(CGFloat)3/255.0f alpha:1]
             expectedCode:@"[UIColor colorWithRed:0.004 green:0.008 blue:0.012 alpha:1.000]"];
 }
 
 - (void)testRGBArrayWithPercentValues {
     [self testColorValue:@[@0.42, @0.42, @0.42]
-           expectedColor:[UIColor colorWithRed:0.42 green:0.42 blue:0.42 alpha:1]
+           expectedColor:[UIColor colorWithRed:(CGFloat)0.42f green:(CGFloat)0.42f blue:(CGFloat)0.42f alpha:1]
             expectedCode:@"[UIColor colorWithRed:0.420 green:0.420 blue:0.420 alpha:1.000]"];
 
     [self testColorValue:@[@1, @1, @1]
@@ -75,13 +75,13 @@
 
 - (void)testColorsWithAlpha {
     [self testColorValue:@[@255, @0, @0, @0.2f]
-           expectedColor:[UIColor colorWithRed:1 green:0 blue:0 alpha:0.2]
+           expectedColor:[UIColor colorWithRed:1 green:0 blue:0 alpha:(CGFloat)0.2f]
             expectedCode:@"[UIColor colorWithRed:1.000 green:0.000 blue:0.000 alpha:0.200]"];
 
-    [self testColorValue:@[@"yellow", @0.2f] expectedColor:[[UIColor yellowColor] colorWithAlphaComponent:0.2]
+    [self testColorValue:@[@"yellow", @0.2f] expectedColor:[[UIColor yellowColor] colorWithAlphaComponent:(CGFloat)0.2f]
             expectedCode:@"[[UIColor yellowColor] colorWithAlphaComponent:0.200]"];
 
-    [self testColorValue:@[@"#00ff00", @0.2f] expectedColor:[[UIColor greenColor] colorWithAlphaComponent:0.2]
+    [self testColorValue:@[@"#00ff00", @0.2f] expectedColor:[[UIColor greenColor] colorWithAlphaComponent:(CGFloat)0.2f]
             expectedCode:@"[[UIColor colorWithRed:0.000 green:1.000 blue:0.000 alpha:1.000] colorWithAlphaComponent:0.200]"];
 }
 
@@ -99,13 +99,13 @@
     NSString *code = [self.converter generateCodeForValue:value];
 
     if (expectedColor != nil) {
-        STAssertNotNil(color, nil);
+        XCTAssertNotNil(color);
     }
 
     if ([expectedColor isKindOfClass:[NSNull class]] == NO) {
-        STAssertEqualObjects(color, expectedColor, nil);
+        XCTAssertEqualObjects(color, expectedColor);
     }
-    STAssertEqualObjects(code, expectedCode, nil);
+    XCTAssertEqualObjects(code, expectedCode);
 }
 
 - (void)setUp {
