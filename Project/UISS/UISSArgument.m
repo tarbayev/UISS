@@ -34,7 +34,8 @@
 
 - (id)convertedValue;
 {
-    return [self.converter convertValue:self.value];
+    id value = self.value;
+    return [self.converter convertValue:value] ?: value;
 }
 
 - (NSString *)generatedCode;

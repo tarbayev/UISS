@@ -199,8 +199,6 @@
     invocation.selector = self.selector;
     invocation.target = self.target;
 
-    [invocation retainArguments];
-
     id converted = [self.property convertedValue];
     if ([converted isKindOfClass:[NSValue class]]) {
         NSUInteger size;
@@ -210,6 +208,7 @@
         [converted getValue:argumentValue];
         [invocation setArgument:argumentValue atIndex:2];
     } else {
+        [invocation retainArguments];
         [invocation setArgument:&converted atIndex:2];
     }
 
