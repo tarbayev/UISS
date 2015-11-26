@@ -35,7 +35,7 @@
 
     UISSProperty *property = [[UISSProperty alloc] init];
     property.name = name;
-    property.value = value;
+    property.value = value == [NSNull null] ? nil : value;
 
     propertySetter.property = property;
     propertySetter.group = context.groupsStack.lastObject;
