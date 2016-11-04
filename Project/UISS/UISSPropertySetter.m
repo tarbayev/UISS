@@ -71,13 +71,16 @@
     unsigned int count = 0;
     Method *methods = class_copyMethodList(class, &count);
 
-    NSString *selectorPrefix = self.selectorPrefix;
+    const char *selectorPrefix = self.selectorPrefix.UTF8String;
 
     for (int i = 0; i < count; i++) {
         SEL selector = method_getName(methods[i]);
-        NSString *selectorString = NSStringFromSelector(selector);
 
-        if ([selectorString hasPrefix:selectorPrefix]) { // reducing the use of regular expression for performance reasons
+        BOOL hasPrefix = strncmp(selectorPrefix, (const char *) selector, strlen(selectorPrefix)) == 0;
+
+        if (hasPrefix) { // reducing the use of regular expression for performance reasons
+            NSString *selectorString = [[NSString alloc] initWithUTF8String:(const char * ) selector];
+
             if ([selectorString rangeOfString:regexp options:NSRegularExpressionSearch].location != NSNotFound) {
                 // this favours selector with shorter label
                 // the purpose of this is to pick forState: instead of forStates:
