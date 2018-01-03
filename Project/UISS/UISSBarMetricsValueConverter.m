@@ -12,7 +12,7 @@
     if (self) {
         self.stringToValueDictionary = [NSDictionary dictionaryWithObjectsAndKeys:
                                         [NSNumber numberWithInteger:UIBarMetricsDefault], @"default",
-                                        [NSNumber numberWithInteger:UIBarMetricsLandscapePhone], @"landscapePhone",
+                                        [NSNumber numberWithInteger:UIBarMetricsCompact], @"landscapePhone",
                                         nil];
         self.stringToCodeDictionary= [NSDictionary dictionaryWithObjectsAndKeys:
                                       @"UIBarMetricsDefault", @"default",
