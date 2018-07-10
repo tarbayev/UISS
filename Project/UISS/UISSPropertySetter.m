@@ -3,8 +3,10 @@
 //
 
 #import <objc/runtime.h>
-#import "UISSPropertySetter.h"
+
 #import "NSString+UISS.h"
+#import "UISSAppearance.h"
+#import "UISSPropertySetter.h"
 
 @interface UISSPropertySetter ()
 
@@ -71,13 +73,17 @@
     unsigned int count = 0;
     Method *methods = class_copyMethodList(class, &count);
 
-    NSString *selectorPrefix = self.selectorPrefix;
+    const char *selectorPrefix = self.selectorPrefix.UTF8String;
+    size_t selectorPrefixLength = strlen(selectorPrefix);
 
     for (int i = 0; i < count; i++) {
         SEL selector = method_getName(methods[i]);
-        NSString *selectorString = NSStringFromSelector(selector);
 
-        if ([selectorString hasPrefix:selectorPrefix]) { // reducing the use of regular expression for performance reasons
+        BOOL hasPrefix = strncmp(selectorPrefix, sel_getName(selector), selectorPrefixLength) == 0;
+
+        if (hasPrefix) { // reducing the use of NSString & regular expression for performance reasons
+            NSString *selectorString = NSStringFromSelector(selector);
+
             if ([selectorString rangeOfString:regexp options:NSRegularExpressionSearch].location != NSNotFound) {
                 // this favours selector with shorter label
                 // the purpose of this is to pick forState: instead of forStates:
@@ -139,19 +145,57 @@
 #pragma mark - Code generation
 
 - (NSString *)appearanceCode {
-    if (self.containment.count) {
-        NSMutableString *containmentCode = [NSMutableString string];
 
-        for (Class <UIAppearanceContainer> appearanceContainer in self.containment.reverseObjectEnumerator) {
-            [containmentCode appendFormat:@"[%@ class], ", NSStringFromClass(appearanceContainer)];
-        }
-        [containmentCode appendString:@"nil"];
-
-        return [NSString stringWithFormat:@"[%@ appearanceWhenContainedIn:%@]",
-                                          NSStringFromClass(self.appearanceClass), containmentCode];
-    } else {
-        return [NSString stringWithFormat:@"[%@ appearance]", NSStringFromClass(self.appearanceClass)];
+    if (_usesUISSAppearance) {
+        return [self UISSAppearanceCode];
     }
+
+    return [self systemAppearanceCode];
+}
+
+- (NSString *)systemAppearanceCode
+{
+    if (self.containment.count) {
+        NSMutableString *containmentCode = [NSMutableString stringWithString:@"@["];
+
+        for (UISSAppearanceContainer *container in self.containment.reverseObjectEnumerator) {
+            [containmentCode appendFormat:@"[%@ class], ", NSStringFromClass(container.containerClass)];
+        }
+        [containmentCode appendString:@"]"];
+
+        return [NSString stringWithFormat:@"[%@ appearanceWhenContainedInInstancesOfClasses:%@]",
+                                          NSStringFromClass(self.appearanceClass), containmentCode];
+    }
+
+    return [NSString stringWithFormat:@"[%@ appearance]", NSStringFromClass(self.appearanceClass)];
+}
+
+- (NSString *)UISSAppearanceCode
+{
+    NSMutableString *result = [NSMutableString new];
+
+    [result appendString:@"["];
+    [result appendString:NSStringFromClass(_appearanceClass)];
+    [result appendFormat:@" appearanceWithUISSIdentifier:@\"%@\"", _identifier];
+
+    if (_containment.count) {
+        [result appendString:@" inContainers:@["];
+
+        NSMutableArray *containerStrings = [NSMutableArray new];
+
+        for (UISSAppearanceContainer *container in _containment.reverseObjectEnumerator) {
+            [containerStrings addObject:[NSString stringWithFormat:@"[UISSAppearanceContainer containerWithClass:%@.class identifier:%@]",
+                                                  NSStringFromClass(container.containerClass),
+                                                  container.identifier ? [NSString stringWithFormat:@"@\"%@\"", container.identifier] : @"nil"]];
+        }
+
+        [result appendString:[containerStrings componentsJoinedByString:@", "]];
+        [result appendString:@"]"];
+    }
+
+    [result appendString:@"]"];
+
+    return result;
 }
 
 - (NSString *)generatedCode {
@@ -230,54 +274,16 @@
 }
 
 - (id)target {
-    // This may be the ugliest method I have ever written
-    // but I do not know how to call this method having NSArray of arguments
-
-    switch (self.containment.count) {
-        case 0:
-            return [self.appearanceClass appearance];
-        case 1:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        case 2:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:1],
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        case 3:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:2],
-                                                 [self.containment objectAtIndex:1],
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        case 4:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:3],
-                                                 [self.containment objectAtIndex:2],
-                                                 [self.containment objectAtIndex:1],
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        case 5:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:4],
-                                                 [self.containment objectAtIndex:3],
-                                                 [self.containment objectAtIndex:2],
-                                                 [self.containment objectAtIndex:1],
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        case 6:
-            return [self.appearanceClass appearanceWhenContainedIn:
-                                                 [self.containment objectAtIndex:5],
-                                                 [self.containment objectAtIndex:4],
-                                                 [self.containment objectAtIndex:3],
-                                                 [self.containment objectAtIndex:2],
-                                                 [self.containment objectAtIndex:1],
-                                                 [self.containment objectAtIndex:0],
-                                         nil];
-        default:
-            return nil;
+    NSCParameterAssert(_usesUISSAppearance || !_identifier);
+    if (self.usesUISSAppearance) {
+        return [self.appearanceClass appearanceWithUISSIdentifier:_identifier inContainers:self.containment.reverseObjectEnumerator.allObjects];
     }
+
+    if (self.containment.count == 0) {
+        return [self.appearanceClass appearance];
+    }
+
+    return [self.appearanceClass appearanceWhenContainedInInstancesOfClasses:[self.containment.reverseObjectEnumerator.allObjects valueForKeyPath:@"containerClass"]];
 }
 
 - (NSString *)description {

@@ -11,8 +11,6 @@
 
 NSString *const FontKey = @"font";
 NSString *const TextColorKey = @"textColor";
-NSString *const TextShadowColorKey = @"textShadowColor";
-NSString *const TextShadowOffsetKey = @"textShadowOffset";
 
 NSString *const BaselineOffsetKey = @"baselineOffset";
 
@@ -21,6 +19,7 @@ NSString *const BaselineOffsetKey = @"baselineOffset";
 @property(nonatomic, strong) UISSFontValueConverter *fontConverter;
 @property(nonatomic, strong) UISSColorValueConverter *colorConverter;
 @property(nonatomic, strong) UISSOffsetValueConverter *offsetConverter;
+@property(nonatomic, strong) UISSFloatValueConverter *floatConverter;
 
 @end
 
@@ -33,6 +32,7 @@ NSString *const BaselineOffsetKey = @"baselineOffset";
         _fontConverter = [UISSFontValueConverter new];
         _colorConverter = [UISSColorValueConverter new];
         _offsetConverter = [UISSOffsetValueConverter new];
+        _floatConverter = [UISSFloatValueConverter new];
     }
     return self;
 }
@@ -71,26 +71,14 @@ NSString *const BaselineOffsetKey = @"baselineOffset";
         [self convertProperty:FontKey
                fromDictionary:dictionary
                  toDictionary:attributes
-                      withKey:UITextAttributeFont
+                      withKey:NSFontAttributeName
                usingConverter:self.fontConverter];
 
         [self convertProperty:TextColorKey
                fromDictionary:dictionary
                  toDictionary:attributes
-                      withKey:UITextAttributeTextColor
+                      withKey:NSForegroundColorAttributeName
                usingConverter:self.colorConverter];
-
-        [self convertProperty:TextShadowColorKey
-               fromDictionary:dictionary
-                 toDictionary:attributes
-                      withKey:UITextAttributeTextShadowColor
-               usingConverter:self.colorConverter];
-
-        [self convertProperty:TextShadowOffsetKey
-               fromDictionary:dictionary
-                 toDictionary:attributes
-                      withKey:UITextAttributeTextShadowOffset
-               usingConverter:self.offsetConverter];
 
         [self convertProperty:BaselineOffsetKey
                fromDictionary:dictionary
@@ -115,27 +103,17 @@ NSString *const BaselineOffsetKey = @"baselineOffset";
 
         id fontValue = [dictionary objectForKey:FontKey];
         if (fontValue) {
-            [objectAndKeys appendFormat:@"%@, %@,", [self.fontConverter generateCodeForValue:fontValue], @"UITextAttributeFont"];
+            [objectAndKeys appendFormat:@"%@, %@,", [self.fontConverter generateCodeForValue:fontValue], @"NSFontAttributeName"];
         }
 
         id textColorValue = [dictionary objectForKey:TextColorKey];
         if (textColorValue) {
-            [objectAndKeys appendFormat:@"%@, %@,", [self.colorConverter generateCodeForValue:textColorValue], @"UITextAttributeTextColor"];
-        }
-
-        id textShadowColor = [dictionary objectForKey:TextShadowColorKey];
-        if (textShadowColor) {
-            [objectAndKeys appendFormat:@"%@, %@,", [self.colorConverter generateCodeForValue:textShadowColor], @"UITextAttributeTextShadowColor"];
-        }
-
-        id textShadowOffset = [dictionary objectForKey:TextShadowOffsetKey];
-        if (textShadowOffset) {
-            [objectAndKeys appendFormat:@"[NSValue valueWithUIOffset:%@], %@,", [self.offsetConverter generateCodeForValue:textShadowOffset], @"UITextAttributeTextShadowOffset"];
+            [objectAndKeys appendFormat:@"%@, %@,", [self.colorConverter generateCodeForValue:textColorValue], @"NSForegroundColorAttributeName"];
         }
 
         id baselineOffset = [dictionary objectForKey:BaselineOffsetKey];
         if (baselineOffset) {
-            [objectAndKeys appendFormat:@"%@, %@,", baselineOffset, @"UITextAttributeTextShadowColor"];
+            [objectAndKeys appendFormat:@"@%@, %@,", [self.floatConverter generateCodeForValue:baselineOffset], @"NSBaselineOffsetAttributeName"];
         }
 
         if (objectAndKeys.length) {
